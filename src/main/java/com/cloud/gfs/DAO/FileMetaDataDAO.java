@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
-public class FileMetaData {
+public class FileMetaDataDAO {
 
     @Id
     @GeneratedValue(generator = "uuid2")
@@ -26,17 +26,31 @@ public class FileMetaData {
     @JoinColumn(name = "chunkId", referencedColumnName = "id")
     private ChunkDAO chunkDAO;
 
-    private Integer serverId;
+    private String serverId;
 
-    FileMetaData(){}
+    private Integer chunkIndex;
 
-    FileMetaData(UUID id, FileDAO fileDAO, ChunkDAO chunkDAO, Integer serverId ){
+    FileMetaDataDAO(){}
+
+    FileMetaDataDAO(UUID id, FileDAO fileDAO, ChunkDAO chunkDAO, Integer chunkIndex, String serverId ){
         this.id = id;
         this.fileDAO = fileDAO;
         this.chunkDAO = chunkDAO;
+        this.chunkIndex = chunkIndex;
         this.serverId = serverId;
     }
 
 
+    public FileMetaDataDAO(UUID fileId, UUID chunkId, Integer chunkIndex, String serverId) {
+        this.fileDAO = new FileDAO();
+        this.fileDAO.setId(fileId);
+
+        this.chunkDAO = new ChunkDAO();
+        this.chunkDAO.setId(chunkId);
+
+        this.chunkIndex = chunkIndex;
+        this.serverId = serverId;
+
+    }
 
 }

@@ -1,19 +1,29 @@
 package com.cloud.gfs;
 
-import com.cloud.gfs.service.FileService;
+import com.cloud.gfs.service.GFSService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.Socket;
 
 @SpringBootApplication
 public class GfsApplication {
 
+//	@Autowired
+//	GFSService obj;
+
+	@Value("${app.gfs.servers}")
+	String[] servers;
+
+	@Value("${app.gfs.ports}")
+	Integer[] ports;
 	public static void main(String[] args) throws IOException {
-		FileService obj = new FileService();
+
 
 		String filePath = "C:/Users/ajayv/Documents/fileReadJava.txt";
 		File file = new File(filePath);
@@ -50,8 +60,34 @@ public class GfsApplication {
 
 	//	obj.testChunk();
 
+
 		SpringApplication.run(GfsApplication.class, args);
 
 	}
+
+//    @Bean(name = "socket1")
+//	public Socket returnSocket1() throws IOException {
+//
+//		Socket sc1 = new Socket(servers[1], ports[1]);
+//		return  sc1;
+//
+//	}
+//
+//	@Bean(name = {"socket2"})
+//	public Socket returnSocket2() throws IOException {
+//
+//		Socket sc2 = new Socket(servers[2], ports[2]);
+//		return  sc2;
+//
+//	}
+//
+//	@Bean(name = {"socket0"})
+//	public Socket returnSocket0() throws IOException {
+//
+//		Socket sc0 = new Socket(servers[0], ports[0]);
+//		return  sc0;
+//
+//	}
+
 
 }

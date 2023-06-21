@@ -19,11 +19,17 @@ public class FileDAO {
     private String name;
     private Integer size;
 
+
     public FileDAO(){}
 
     public FileDAO(UUID id, String name, Integer size){
         this.id = id;
         this.name = name;
         this.size = size;
+    }
+
+    public FileDAO(String fileName, int fileSize) {
+        this.name = fileName;
+        this.size = fileSize;
     }
 }
