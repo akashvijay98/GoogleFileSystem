@@ -1,5 +1,7 @@
 
-
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -32,9 +34,9 @@ public class Server {
 			String command = readFromClient.readUTF();
 			System.out.println("command=="+command);
 
-			if(command.equals('') || command == null)
+			if(command == null)
 			{
-				dataOutputStream.writeUTF("NoCommand")
+				dataOutputStream.writeUTF("NoCommand");
 			}
 
 			if(command.equals("create"))
@@ -61,6 +63,19 @@ public class Server {
 
 
 					bytes = inputStream.read(buffer);
+
+					// Get the memory bean
+					MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+
+					// Get the heap memory usage
+					MemoryUsage heapMemoryUsage = memoryBean.getHeapMemoryUsage();
+
+					// Get the non-heap memory usage
+					MemoryUsage nonHeapMemoryUsage = memoryBean.getNonHeapMemoryUsage();
+
+					// Print the memory usage
+					System.out.println("Heap Memory Usage: " + heapMemoryUsage);
+					System.out.println("Non-Heap Memory Usage: " + nonHeapMemoryUsage);
 					String path = "/home/akvj98/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
 					System.out.println("buffer Array ==" + Arrays.toString(buffer));
