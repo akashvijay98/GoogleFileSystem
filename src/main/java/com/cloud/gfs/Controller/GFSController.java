@@ -28,8 +28,9 @@ public class GFSController {
     }
 
     @PostMapping("/gfs")
-    public List<File> uploadFile(@RequestBody GFSRequestDAO gfsRequest){
+    public String uploadFile(@RequestBody GFSRequestDAO gfsRequest){
         try {
+
             return gfsService.uploadFile(gfsRequest.getFile(),gfsRequest.getFileName(), gfsRequest.getFileExtension());
         }
         catch(Exception e){
