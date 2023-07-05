@@ -32,8 +32,14 @@ public class Server {
 			String command = readFromClient.readUTF();
 			System.out.println("command=="+command);
 
+			if(command.equals('') || command == null)
+			{
+				dataOutputStream.writeUTF("NoCommand")
+			}
+
 			if(command.equals("create"))
 			{
+				dataOutputStream.writeUTF("command recived");
 
             	System.out.println("entered while loop");
 
@@ -55,7 +61,7 @@ public class Server {
 
 
 					bytes = inputStream.read(buffer);
-					String path = "/home/akvj/" + fileName + Integer.toString(chunkNo) + extension;
+					String path = "/home/akvj98/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
 					System.out.println("buffer Array ==" + Arrays.toString(buffer));
 
@@ -91,6 +97,8 @@ public class Server {
 			else if(command.equals("read"))
 			{
 				System.out.println("command==="+command);
+				dataOutputStream.writeUTF("command recived");
+
 				String chunkName = readFromClient.readUTF();
 
 				String path = "/home/akvj/"+chunkName+"/";

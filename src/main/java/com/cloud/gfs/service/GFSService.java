@@ -108,6 +108,7 @@ public class GFSService {
 
 
                     writeToServer.writeUTF("create");
+                    System.out.println("response from server"+readFromServer.readUTF());
 
                     System.out.println("sent command to server");
                     System.out.println("response from server:= " + readFromServer.readUTF());
