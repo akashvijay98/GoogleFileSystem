@@ -11,6 +11,6 @@ import java.util.UUID;
 @Repository
 public interface FileMetaDataRepository extends JpaRepository<FileMetaDataDAO, UUID> {
 
-    @Query(value = "SELECT * FROM gfs1.public.file_meta_data  WHERE file_id  = ?1", nativeQuery = true)
+    @Query(value = "SELECT * FROM gfs3.public.file_meta_data  WHERE file_id  = ?1", nativeQuery = true)
     List<FileMetaDataDAO> findByFileId(UUID fileId);
 }
