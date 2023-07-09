@@ -15,47 +15,49 @@ public class Server {
         int port = 4591;
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("server started");
-        Socket socket = serverSocket.accept();
-        System.out.println("server accepted");
+       
 
-		int chunkSize = 8192;
+	int chunkSize = 8192;
 
-		OutputStream outputStream = socket.getOutputStream();
-        DataOutputStream  dataOutputStream = new DataOutputStream(outputStream);
-
-
-		InputStream inputStream =  socket.getInputStream();
-		DataInputStream readFromClient  = new DataInputStream(inputStream);
-
+		
 
 		while(true)
 		{
+ 			 Socket socket = serverSocket.accept();
+        		System.out.println("server accepted");
 
-			String command = readFromClient.readUTF();
-			System.out.println("command=="+command);
 
-			if(command == null)
+			OutputStream outputStream = socket.getOutputStream();
+        		DataOutputStream  dataOutputStream = new DataOutputStream(outputStream);
+
+
+			InputStream inputStream =  socket.getInputStream();
+			DataInputStream readFromClient  = new DataInputStream(inputStream);
+
+
+			String messageData = readFromClient.readUTF();
+
+		
+			
+			String[] message = messageData.split(",");
+			System.out.println("command=="+message[0]);
+
+			if(message[0] == null || message[0]=="")
 			{
-				dataOutputStream.writeUTF("NoCommand");
+				System.out.println("NoCommand");
 			}
 
-			if(command.equals("create"))
+			if(message[0].equals("create"))
 			{
-				dataOutputStream.writeUTF("command recived");
-
-            	System.out.println("entered while loop");
-
-				dataOutputStream.writeUTF("ready to create chunk");
 
 				try {
-					String fileName = readFromClient.readUTF();
-					dataOutputStream.writeUTF(fileName);
-					String extension = readFromClient.readUTF();
-					dataOutputStream.writeUTF(extension);
+					String fileName = message[1];
+
+					String extension = message[2];
 					int bytes = 0;
 
-					int chunkNo = readFromClient.readInt();
-					int size = readFromClient.readInt();
+					int chunkNo = Integer.parseInt(message[3]);
+					int size = Integer.parseInt(message[4]);
 					byte[] buffer = new byte[size];
 
 
@@ -76,9 +78,9 @@ public class Server {
 					// Print the memory usage
 					System.out.println("Heap Memory Usage: " + heapMemoryUsage);
 					System.out.println("Non-Heap Memory Usage: " + nonHeapMemoryUsage);
-					String path = "/home/akvj98/" + fileName + Integer.toString(chunkNo) + extension;
+					String path = "/C:/Users/akash/Documents/Test/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
-					System.out.println("buffer Array ==" + Arrays.toString(buffer));
+					//System.out.println("buffer Array ==" + Arrays.toString(buffer));
 
 					FileOutputStream fileOutputStream = new FileOutputStream(path);
 
@@ -89,9 +91,12 @@ public class Server {
 
 						fileOutputStream.write(upbyte, 0, bytes);
 						System.out.println("Succesfully wrote chunk" + chunkNo);
+
 						dataOutputStream.writeUTF("success");
 						dataOutputStream.flush();
+						messageData=null;
 
+						
 
 					}
 
@@ -99,6 +104,7 @@ public class Server {
 					{
 						e.printStackTrace();
 					}
+
 
 				}
 
@@ -109,33 +115,48 @@ public class Server {
 
 	   		}
 
-			else if(command.equals("read"))
+			else if(message[0].equals("read"))
 			{
-				System.out.println("command==="+command);
+				System.out.println("command==="+message[0]);
 				dataOutputStream.writeUTF("command recived");
 
 				String chunkName = readFromClient.readUTF();
 
-				String path = "/home/akvj/"+chunkName+"/";
+				String path = "/C:/Users/akash/Documents/Test/"+chunkName;
+					
+				System.out.println("file path="+path);
 
 				FileInputStream iso = new FileInputStream(path);
-				byte[] buffer = new byte[4096];
+				byte[] buffer = new byte[8192];
 				int bytes=0;
-				//System.out.println("filedata====="+iso.read(buffer, 0 ,4096));
+				//System.out.println("filedata====="+iso.read(buffer, 0 ,8192));
 
-				while((bytes = iso.read(buffer, 0, 4096)) != -1)
-				{
+				bytes = iso.read(buffer,0,8192);
+				
 
-					System.out.println("buffer array =="+buffer.toString());
-					dataOutputStream.write(buffer, 0, 4096);
+					System.out.println("bytes =="+bytes);
+					System.out.println("buffer length =="+buffer.length);
 
-				}
 
-				dataOutputStream.writeUTF("successfully uploaded");
-				dataOutputStream.flush();
+					dataOutputStream.write(buffer, 0, bytes);
+					dataOutputStream.flush();
+
+
+				
+
+				//
+.writeUTF("successfully uploaded");
+				
 
 			}
+
+
+			
+
+				   
+					
 		}
+		
 
     }
 
