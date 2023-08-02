@@ -78,7 +78,7 @@ public class GFSService {
 
                 try {
 
-                    socket0 = new Socket(servers[0], ports[0]);
+                    socket0 = new Socket(servers[serverNumber], ports[serverNumber]);
                     //socket0.setSoTimeout(100000);
                     socket0.setKeepAlive(true);
                 }
@@ -134,7 +134,7 @@ public class GFSService {
                 try {
 
 
-                   writeToServer.writeUTF(message);
+                    writeToServer.writeUTF(message);
                     Thread.sleep(200);
 
                     writeToServer.write(upbytes, 0, dataRead);
@@ -232,7 +232,7 @@ public class GFSService {
 
         public void getFile(UUID fileId, String fileName, String fileExtension) throws IOException {
 
-            Socket socket0;
+            Socket socket;
 
 
 //            Socket socket1;
@@ -273,29 +273,26 @@ public class GFSService {
         FileOutputStream fos = new FileOutputStream(outputFile);
 
         for(int chunkIndex : chunkIndexes){
-            try {
-                socket0 = new Socket(servers[0], ports[0]);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+
 
             String serverIp = fileMetaDataList.stream().filter(data -> data.getChunkIndex() == chunkIndex).findFirst().map(FileMetaDataDAO :: getServerId).orElse("Default Property");;
 
-           // if(serverIp.equals("192.168.1.12")) {
-                outToServer = socket0.getOutputStream();
-                inFromServer = socket0.getInputStream();
-           // }
-//
-//            else if (serverIp.equals("192.168.1.15")) {
-//                outToServer = socket1.getOutputStream();
-//                inFromServer = socket1.getInputStream();
-//            }
-//
-//            else {
-//
-//                outToServer = socket2.getOutputStream();
-//                inFromServer = socket2.getInputStream();
-//            }
+           if(serverIp.equals("192.168.1.12")) {
+            socket = new Socket(servers[0], ports[0]);
+
+           }
+
+           else if (serverIp.equals("192.168.1.15")) {
+               socket = new Socket(servers[1], ports[1]);
+            }
+
+            else {
+               socket = new Socket(servers[2], ports[2]);
+
+            }
+            outToServer = socket.getOutputStream();
+            inFromServer = socket.getInputStream();
+
             writeToServer =  new DataOutputStream(outToServer);
             readFromServer = new DataInputStream(inFromServer);
 
