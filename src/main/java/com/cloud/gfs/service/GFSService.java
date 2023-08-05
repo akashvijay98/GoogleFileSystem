@@ -64,7 +64,7 @@ public class GFSService {
 
             int serverNumber= 0;
             int chunkCount = 1;
-            final byte[] buffer = new byte[maxChunkSize];
+            byte[] buffer = new byte[maxChunkSize];
             int dataRead;
 
 
@@ -73,12 +73,12 @@ public class GFSService {
 
 
 
-            while ((dataRead=in.read(buffer,0, maxChunkSize)) != -1 ) {
+            while ((dataRead=in.read(buffer)) != -1 ) {
 
 
                 try {
 
-                    socket0 = new Socket(servers[serverNumber], ports[serverNumber]);
+                    socket0 = new Socket(servers[0], ports[0]);
                     //socket0.setSoTimeout(100000);
                     socket0.setKeepAlive(true);
                 }
@@ -134,11 +134,12 @@ public class GFSService {
                 try {
 
 
-                    writeToServer.writeUTF(message);
+                   writeToServer.writeUTF(message);
                     Thread.sleep(200);
 
-                    writeToServer.write(upbytes, 0, dataRead);
+                    writeToServer.write(buffer, 0, dataRead);
                     writeToServer.flush();
+                    buffer = new byte[maxChunkSize];
 
                     String response = readFromServer.readUTF();
                     System.out.println("response from server after uploading chunk"+response);
@@ -146,6 +147,8 @@ public class GFSService {
                         System.out.println("there seems to be a problem");
                         break;
                     }
+
+                    socket0.close();
 
                     Thread.sleep(200);
 
@@ -232,7 +235,7 @@ public class GFSService {
 
         public void getFile(UUID fileId, String fileName, String fileExtension) throws IOException {
 
-            Socket socket;
+            Socket socket0;
 
 
 //            Socket socket1;
@@ -273,43 +276,62 @@ public class GFSService {
         FileOutputStream fos = new FileOutputStream(outputFile);
 
         for(int chunkIndex : chunkIndexes){
-
+            try {
+                socket0 = new Socket(servers[0], ports[0]);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
             String serverIp = fileMetaDataList.stream().filter(data -> data.getChunkIndex() == chunkIndex).findFirst().map(FileMetaDataDAO :: getServerId).orElse("Default Property");;
 
-           if(serverIp.equals("192.168.1.12")) {
-            socket = new Socket(servers[0], ports[0]);
-
-           }
-
-           else if (serverIp.equals("192.168.1.15")) {
-               socket = new Socket(servers[1], ports[1]);
-            }
-
-            else {
-               socket = new Socket(servers[2], ports[2]);
-
-            }
-            outToServer = socket.getOutputStream();
-            inFromServer = socket.getInputStream();
-
+           // if(serverIp.equals("192.168.1.12")) {
+                outToServer = socket0.getOutputStream();
+                inFromServer = socket0.getInputStream();
+           // }
+//
+//            else if (serverIp.equals("192.168.1.15")) {
+//                outToServer = socket1.getOutputStream();
+//                inFromServer = socket1.getInputStream();
+//            }
+//
+//            else {
+//
+//                outToServer = socket2.getOutputStream();
+//                inFromServer = socket2.getInputStream();
+//            }
             writeToServer =  new DataOutputStream(outToServer);
             readFromServer = new DataInputStream(inFromServer);
 
-            writeToServer.writeUTF("read");
+            String chunkName = fileName + Integer.toString(chunkIndex) + fileExtension;
+
+            //writeToServer.writeUTF("read");
+            String message = "";
+            message+= "read";
+            message+=",";
+            message+= chunkName;
 
 
-            int bytes=0;
+
+            int bytes;
 
             byte[] buffer = new byte[8192];
+            int totalBytesRead = 0;
 
-            String chunkName = fileName + Integer.toString(chunkIndex) + fileExtension;
-            writeToServer.writeUTF(chunkName);
 
-            bytes = readFromServer.read(buffer);
 
-                    System.out.println("bytes==="+bytes);
-                    fos.write(buffer, 0 , bytes);
+            writeToServer.writeUTF(message);
+
+           while( totalBytesRead<maxChunkSize &&(bytes = readFromServer.read(buffer,totalBytesRead,maxChunkSize-totalBytesRead))!=-1) {
+
+
+               System.out.println("bytes===" + bytes);
+               fos.write(buffer, totalBytesRead, bytes);
+               totalBytesRead += bytes;
+
+           }
+
+
+
 
 
         }

@@ -28,7 +28,7 @@ public class Server {
 
 
 			OutputStream outputStream = socket.getOutputStream();
-        		DataOutputStream  dataOutputStream = new DataOutputStream(outputStream);
+			DataOutputStream  dataOutputStream = new DataOutputStream(outputStream);
 
 
 			InputStream inputStream =  socket.getInputStream();
@@ -40,7 +40,7 @@ public class Server {
 		
 			
 			String[] message = messageData.split(",");
-			System.out.println("command=="+message[0]);
+			System.out.println("messagedata=="+messageData);
 
 			if(message[0] == null || message[0]=="")
 			{
@@ -59,51 +59,58 @@ public class Server {
 					int chunkNo = Integer.parseInt(message[3]);
 					int size = Integer.parseInt(message[4]);
 					byte[] buffer = new byte[size];
+					int totalBytesRead = 0;
 
-
-					System.out.println("size=====" + size);
-
-
-					bytes = inputStream.read(buffer);
-
-					// Get the memory bean
-					MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
-
-					// Get the heap memory usage
-					MemoryUsage heapMemoryUsage = memoryBean.getHeapMemoryUsage();
-
-					// Get the non-heap memory usage
-					MemoryUsage nonHeapMemoryUsage = memoryBean.getNonHeapMemoryUsage();
-
-					// Print the memory usage
-					System.out.println("Heap Memory Usage: " + heapMemoryUsage);
-					System.out.println("Non-Heap Memory Usage: " + nonHeapMemoryUsage);
-					String path = "/C:/Users/akash/Documents/Test/" + fileName + Integer.toString(chunkNo) + extension;
+					String path = "/temp/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
 					//System.out.println("buffer Array ==" + Arrays.toString(buffer));
 
 					FileOutputStream fileOutputStream = new FileOutputStream(path);
 
-					byte[] upbyte = new byte[bytes];
-					System.arraycopy(buffer, 0, upbyte, 0, bytes);
+					while(totalBytesRead < size && (bytes = inputStream.read(buffer,totalBytesRead,size-totalBytesRead))!=-1) {
 
-					try {
+						System.out.println("bytes ===" + bytes);
 
-						fileOutputStream.write(upbyte, 0, bytes);
-						System.out.println("Succesfully wrote chunk" + chunkNo);
+						//byte[] upbyte = new byte[bytes];
+					//	System.arraycopy(buffer, 0, upbyte, 0, bytes);
 
-						dataOutputStream.writeUTF("success");
-						dataOutputStream.flush();
-						messageData=null;
+						try {
 
-						
+							fileOutputStream.write(buffer, totalBytesRead, bytes);
+							totalBytesRead += bytes;
+							System.out.println("Succesfully wrote chunk" + chunkNo);
+
+							dataOutputStream.writeUTF("success");
+							dataOutputStream.flush();
+
+							messageData=null;
+						//	buffer = new byte[8192];
+
+
+						}
+
+						catch (Exception e)
+						{
+							e.printStackTrace();
+						}
 
 					}
 
-					catch (Exception e)
-					{
-						e.printStackTrace();
-					}
+					// Get the memory bean
+					MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+
+					// Get the heap memory usage
+			//		MemoryUsage heapMemoryUsage = memoryBean.getHeapMemoryUsage();
+
+					// Get the non-heap memory usage
+					//	MemoryUsage nonHeapMemoryUsage = memoryBean.getNonHeapMemoryUsage();
+
+					// Print the memory usage
+					//	System.out.println("Heap Memory Usage: " + heapMemoryUsage);
+					//System.out.println("Non-Heap Memory Usage: " + nonHeapMemoryUsage);
+
+
+
 
 
 				}
@@ -118,42 +125,35 @@ public class Server {
 			else if(message[0].equals("read"))
 			{
 				System.out.println("command==="+message[0]);
-				dataOutputStream.writeUTF("command recived");
 
-				String chunkName = readFromClient.readUTF();
+				String chunkName = message[1];
 
-				String path = "/C:/Users/akash/Documents/Test/"+chunkName;
-					
+				System.out.println("chunkName="+chunkName);
+				String path = "/temp/"+chunkName;
 				System.out.println("file path="+path);
 
 				FileInputStream iso = new FileInputStream(path);
 				byte[] buffer = new byte[8192];
-				int bytes=0;
+				int bytes;
 				//System.out.println("filedata====="+iso.read(buffer, 0 ,8192));
 
-				bytes = iso.read(buffer,0,8192);
-				
 
-					System.out.println("bytes =="+bytes);
-					System.out.println("buffer length =="+buffer.length);
+				bytes = iso.read(buffer,0,8192);
+
+
+					System.out.println("bytes ==" + bytes);
+					byte[] upbytes = new byte[bytes];
+					System.arraycopy(buffer, 0, upbytes, 0, bytes);
+					System.out.println("bytes size =="+bytes);
 
 
 					dataOutputStream.write(buffer, 0, bytes);
 					dataOutputStream.flush();
 
 
-				
 
-				//
-.writeUTF("successfully uploaded");
-				
 
 			}
-
-
-			
-
-				   
 					
 		}
 		
