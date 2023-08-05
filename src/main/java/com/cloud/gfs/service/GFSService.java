@@ -54,10 +54,6 @@ public class GFSService {
 
         Socket socket0;
 
-
-
-
-
         List<File> list = new ArrayList<>();
 
         try (InputStream in = Files.newInputStream(largeFile.toPath())) {
@@ -71,14 +67,11 @@ public class GFSService {
             FileDAO file = new FileDAO(fileName, fileSize);
             FileDAO fileResponse =  fileService.addFile(file);
 
-
-
             while ((dataRead=in.read(buffer)) != -1 ) {
-
 
                 try {
 
-                    socket0 = new Socket(servers[0], ports[0]);
+                    socket0 = new Socket(servers[serverNumber], ports[serverNumber]);
                     //socket0.setSoTimeout(100000);
                     socket0.setKeepAlive(true);
                 }
@@ -86,7 +79,6 @@ public class GFSService {
                 {
                     throw new RuntimeException(e);
                 }
-
 
                 OutputStream outToServer;
                 DataOutputStream writeToServer;
@@ -103,7 +95,6 @@ public class GFSService {
 
                 readFromServer = new DataInputStream(inFromServer);
 
-
                 String message = "";
                 message+= "create";
                 message+=",";
@@ -115,24 +106,14 @@ public class GFSService {
                 message+=",";
                 message+= Integer.toString(fileSize);
 
-
-
-               // String[] messageData = message.split(",");
-
-
-                //  System.out.println("wrote to serer byte array"+ Arrays.toString(buffer));
-
                 byte[] upbytes = new byte[dataRead];
                 System.arraycopy(buffer, 0, upbytes, 0, dataRead);
                 System.out.println("data read size =="+dataRead);
 
-
                 String chunkName = fileName + Integer.toString(chunkCount);
                 int chunkSize = buffer.length;
 
-
                 try {
-
 
                    writeToServer.writeUTF(message);
                     Thread.sleep(200);
@@ -157,26 +138,19 @@ public class GFSService {
                     e.printStackTrace();
 
                 }
-              System.out.println("chunk no "+chunkCount);
-
-
+                System.out.println("chunk no "+chunkCount);
 
                 ChunkDAO chunk = new ChunkDAO(chunkName, chunkSize, chunkCount);
                 ChunkDAO chunkResponse =  chunkService.addChunk(chunk);
 
-                FileMetaDataDAO fileMetaData = new FileMetaDataDAO(fileResponse.getId(), chunkResponse.getId(), chunkCount, servers[serverNumber]);
+                FileMetaDataDAO fileMetaData = new FileMetaDataDAO(fileResponse.getId(), chunkResponse.getId(), chunkCount, servers[serverNumber], ports[serverNumber]);
                 metaService.addFileMetaData(fileMetaData);
 
                 chunkCount++;
 
-                serverNumber = chunkCount % 3;
-
-//                list.add(fileChunk);
-
-//            }
+                serverNumber = chunkCount % 2;
 
             }
-
         }
         catch (Exception e){
             System.out.println("there is an exception"+e);
@@ -186,161 +160,69 @@ public class GFSService {
 
     }
 
-    public void ReadFile(String fileName, String fileExtension, UUID fileId){
 
-
-
-
-
-
-    }
-
-    public void testChunk() throws IOException {
-        String sourcepath = "/home/akvj/chunkfile1";
-
-
-        String path = "C:/Users/ajayv/";
-        String hostname = "192.168.1.15";
-        int portNo = 4589;
-
-        Socket socket = new Socket(hostname, portNo);
-
-        InputStream inputStream = socket.getInputStream();
-        OutputStream outputStream = socket.getOutputStream();
-
-        DataOutputStream outToServer = new DataOutputStream(outputStream);
-        DataInputStream inFromServer = new DataInputStream(inputStream);
-
-        outToServer.writeUTF("read");
-        int bytes;
-
-        byte[] buffer = new byte[4096];
-
-
-        while(true){
-
-            File outputFile = File.createTempFile("javaInputfile",".txt", new File(path));
-            FileOutputStream fos = new FileOutputStream(outputFile);
-            while( (bytes = inFromServer.read(buffer)) != 1 ){
-                System.out.println("bytes==="+bytes);
-                fos.write(buffer, 0 , bytes);
-                bytes = inFromServer.read(buffer);
-
-            }
-            socket.close();
-
-        }
-
-        }
-
-        public void getFile(UUID fileId, String fileName, String fileExtension) throws IOException {
-
+        public void getFile(UUID fileId, String fileName, String fileExtension) throws IOException
+        {
             Socket socket0;
-
-
-//            Socket socket1;
-//
-//            {
-//                try {
-//                    socket1 = new Socket(servers[1], ports[1]);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//
-//            Socket socket2;
-//
-//            {
-//                try {
-//                    socket2 = new Socket(servers[2], ports[2]);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//
-
 
             List<FileMetaDataDAO> fileMetaDataList = metaService.fileMetaDataRepository.findByFileId(fileId);
 
-        int[] chunkIndexes = fileMetaDataList.stream().mapToInt(FileMetaDataDAO :: getChunkIndex).sorted().toArray();
+            int[] chunkIndexes = fileMetaDataList.stream().mapToInt(FileMetaDataDAO :: getChunkIndex).sorted().toArray();
 
-        OutputStream outToServer;
-        InputStream inFromServer;
+            OutputStream outToServer;
+            InputStream inFromServer;
 
-        DataOutputStream writeToServer;
-        DataInputStream readFromServer;
+            DataOutputStream writeToServer;
+            DataInputStream readFromServer;
 
-        String path = "C:/Users/ajayv/Documents";
+            String path = "C:/Users/ajayv/Documents";
 
-        File outputFile = File.createTempFile(fileName,fileExtension, new File(path));
-        FileOutputStream fos = new FileOutputStream(outputFile);
+            File outputFile = File.createTempFile(fileName,fileExtension, new File(path));
+            FileOutputStream fos = new FileOutputStream(outputFile);
 
-        for(int chunkIndex : chunkIndexes){
-            try {
-                socket0 = new Socket(servers[0], ports[0]);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            for(int chunkIndex : chunkIndexes){
 
-            String serverIp = fileMetaDataList.stream().filter(data -> data.getChunkIndex() == chunkIndex).findFirst().map(FileMetaDataDAO :: getServerId).orElse("Default Property");;
+                try {
+                    String serverIp = fileMetaDataList.stream().filter(data -> data.getChunkIndex() == chunkIndex).findFirst().map(FileMetaDataDAO :: getServerId).orElse("Default Property");
+                    Integer port = fileMetaDataList.stream().filter(data -> data.getChunkIndex() == chunkIndex).findFirst().map(FileMetaDataDAO :: getPort).orElse(0);
+                    socket0 = new Socket(serverIp, port);
+                }
 
-           // if(serverIp.equals("192.168.1.12")) {
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
                 outToServer = socket0.getOutputStream();
                 inFromServer = socket0.getInputStream();
-           // }
-//
-//            else if (serverIp.equals("192.168.1.15")) {
-//                outToServer = socket1.getOutputStream();
-//                inFromServer = socket1.getInputStream();
-//            }
-//
-//            else {
-//
-//                outToServer = socket2.getOutputStream();
-//                inFromServer = socket2.getInputStream();
-//            }
-            writeToServer =  new DataOutputStream(outToServer);
-            readFromServer = new DataInputStream(inFromServer);
 
-            String chunkName = fileName + Integer.toString(chunkIndex) + fileExtension;
+                writeToServer =  new DataOutputStream(outToServer);
+                readFromServer = new DataInputStream(inFromServer);
 
-            //writeToServer.writeUTF("read");
-            String message = "";
-            message+= "read";
-            message+=",";
-            message+= chunkName;
+                String chunkName = fileName + Integer.toString(chunkIndex) + fileExtension;
 
+                String message = "";
+                message+= "read";
+                message+=",";
+                message+= chunkName;
 
+                int bytes;
 
-            int bytes;
+                byte[] buffer = new byte[8192];
+                int totalBytesRead = 0;
 
-            byte[] buffer = new byte[8192];
-            int totalBytesRead = 0;
+                writeToServer.writeUTF(message);
 
+                while( totalBytesRead<maxChunkSize &&(bytes = readFromServer.read(buffer,totalBytesRead,maxChunkSize-totalBytesRead))!=-1) {
 
+                    System.out.println("bytes===" + bytes);
+                    fos.write(buffer, totalBytesRead, bytes);
+                    totalBytesRead += bytes;
 
-            writeToServer.writeUTF(message);
+                }
 
-           while( totalBytesRead<maxChunkSize &&(bytes = readFromServer.read(buffer,totalBytesRead,maxChunkSize-totalBytesRead))!=-1) {
+            }
 
-
-               System.out.println("bytes===" + bytes);
-               fos.write(buffer, totalBytesRead, bytes);
-               totalBytesRead += bytes;
-
-           }
-
-
-
-
-
+            System.out.println("sucess");
         }
-
-        System.out.println("sucess===============");
-
-    }
-
-
-
     }
 

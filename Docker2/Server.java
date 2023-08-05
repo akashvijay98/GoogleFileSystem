@@ -11,8 +11,7 @@ public class Server {
 
     void run() throws IOException
 	{
-        String serverIp = "192.168.1.19";
-        int port = 4591;
+        int port = 4592;
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("server started");
        
@@ -61,7 +60,7 @@ public class Server {
 					byte[] buffer = new byte[size];
 					int totalBytesRead = 0;
 
-					String path = "/temp/" + fileName + Integer.toString(chunkNo) + extension;
+					String path = "/temp2/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
 					//System.out.println("buffer Array ==" + Arrays.toString(buffer));
 
@@ -129,7 +128,7 @@ public class Server {
 				String chunkName = message[1];
 
 				System.out.println("chunkName="+chunkName);
-				String path = "/temp/"+chunkName;
+				String path = "/temp2/"+chunkName;
 				System.out.println("file path="+path);
 
 				FileInputStream iso = new FileInputStream(path);
