@@ -10,7 +10,6 @@ import java.util.UUID;
 @Service
 public class FileService {
 
-    // autowire
     FileRepository fileRepository;
 
     public FileService(FileRepository _fileRepository){
@@ -18,12 +17,6 @@ public class FileService {
     }
 
     public FileDAO addFile(FileDAO file){
-
-
-       // add try catch
-
-
-        //catch - throw new IllegalStateException("Could not save file")
         FileDAO fileResponse =  fileRepository.save(file);
         return fileResponse;
 

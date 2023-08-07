@@ -4,7 +4,6 @@ import com.cloud.gfs.DAO.ChunkDAO;
 import com.cloud.gfs.DAO.FileDAO;
 import com.cloud.gfs.DAO.FileMetaDataDAO;
 import com.cloud.gfs.DAO.Message;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +21,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 public class GFSService {
 
     @Value("${app.gfs.temp.directory}")
@@ -42,15 +40,21 @@ public class GFSService {
     @Value("${app.gfs.ports}")
     Integer[] ports;
 
+    String fileName = "FileReadJava";
+    String fileExtension = ".txt";
+
+    int fileSize = 8192;
+
     @Value("${app.gfs.chunk-size}")
     private int maxChunkSize; // the maximum chunk size is 4Kb in size
 
 
-    public String uploadFile(File largeFile, String fileName, String fileExtension, Integer fileSize) throws IOException {
+
+    public String uploadFile(File largeFile, String fileName, String fileExtension) throws IOException {
 
         Socket socket0;
 
-        List<File> list = new ArrayList<>(); // check
+        List<File> list = new ArrayList<>();
 
         try (InputStream in = Files.newInputStream(largeFile.toPath())) {
 
@@ -59,15 +63,16 @@ public class GFSService {
             byte[] buffer = new byte[maxChunkSize];
             int dataRead;
 
-            //map
-            FileDAO file = new FileDAO(fileName, fileSize); // check
 
+            FileDAO file = new FileDAO(fileName, fileSize);
             FileDAO fileResponse =  fileService.addFile(file);
 
             while ((dataRead=in.read(buffer)) != -1 ) {
 
                 try {
+
                     socket0 = new Socket(servers[serverNumber], ports[serverNumber]);
+                    //socket0.setSoTimeout(100000);
                     socket0.setKeepAlive(true);
                 }
                 catch (IOException e)
@@ -75,11 +80,9 @@ public class GFSService {
                     throw new RuntimeException(e);
                 }
 
-                //
                 OutputStream outToServer;
                 DataOutputStream writeToServer;
 
-                //
                 InputStream inFromServer;
                 DataInputStream readFromServer;
 
@@ -88,9 +91,7 @@ public class GFSService {
 
 
                 writeToServer = new DataOutputStream(outToServer);
-
-                // ADD LOG
-                log.info("connected to server",writeToServer);
+                System.out.println("connected to server"+writeToServer);
 
                 readFromServer = new DataInputStream(inFromServer);
 
@@ -105,14 +106,10 @@ public class GFSService {
                 message+=",";
                 message+= Integer.toString(fileSize);
 
-                //
                 byte[] upbytes = new byte[dataRead];
-
-                // log
                 System.arraycopy(buffer, 0, upbytes, 0, dataRead);
-                log.info("data read size"+dataRead);
+                System.out.println("data read size =="+dataRead);
 
-                //
                 String chunkName = fileName + Integer.toString(chunkCount);
                 int chunkSize = buffer.length;
 
@@ -123,28 +120,25 @@ public class GFSService {
 
                     writeToServer.write(buffer, 0, dataRead);
                     writeToServer.flush();
-
                     buffer = new byte[maxChunkSize];
 
                     String response = readFromServer.readUTF();
-                    log.info("response from server after uploading chunk"+response);
-
-
+                    System.out.println("response from server after uploading chunk"+response);
                     if(!response.equals("success")){
-
-                        log.error("the server is not responding");
+                        System.out.println("there seems to be a problem");
                         break;
                     }
 
                     socket0.close();
 
                     Thread.sleep(200);
+
                 }
                 catch(UTFDataFormatException e){
-                    log.error("Data format is incorrect", e.getStackTrace());
-                }
+                    e.printStackTrace();
 
-                log.info("Chunk count ", chunkCount);
+                }
+                System.out.println("chunk no "+chunkCount);
 
                 ChunkDAO chunk = new ChunkDAO(chunkName, chunkSize, chunkCount);
                 ChunkDAO chunkResponse =  chunkService.addChunk(chunk);
@@ -153,12 +147,13 @@ public class GFSService {
                 metaService.addFileMetaData(fileMetaData);
 
                 chunkCount++;
+
                 serverNumber = chunkCount % 2;
 
             }
         }
         catch (Exception e){
-            log.error("there is an exception", e.getStackTrace());
+            System.out.println("there is an exception"+e);
             e.printStackTrace();
         }
         return "successfully uploaded";
@@ -180,7 +175,7 @@ public class GFSService {
             DataOutputStream writeToServer;
             DataInputStream readFromServer;
 
-            String path = "./media";
+            String path = "C:/Users/ajayv/Documents";
 
             File outputFile = File.createTempFile(fileName,fileExtension, new File(path));
             FileOutputStream fos = new FileOutputStream(outputFile);
@@ -219,13 +214,15 @@ public class GFSService {
 
                 while( totalBytesRead<maxChunkSize &&(bytes = readFromServer.read(buffer,totalBytesRead,maxChunkSize-totalBytesRead))!=-1) {
 
-                    log.info("bytes=", bytes);
+                    System.out.println("bytes===" + bytes);
                     fos.write(buffer, totalBytesRead, bytes);
                     totalBytesRead += bytes;
 
                 }
+
             }
-            log.info("successfully uploaded");
+
+            System.out.println("sucess");
         }
     }
 

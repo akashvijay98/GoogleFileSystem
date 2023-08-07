@@ -6,41 +6,44 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.logging.Logger;
-import java.util.logging.Level;
 
 public class Server {
-	private static final Logger log = Logger.getLogger(Server.class.getName());
 
-	void run() throws IOException
+    void run() throws IOException
 	{
-		int port = 4592;
-		ServerSocket serverSocket = new ServerSocket(port);
-		log.info("server started");
+        int port = 4592;
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("server started");
+       
 
+	int chunkSize = 8192;
 
-		int chunkSize = 8192;
-
-
+		
 
 		while(true)
 		{
-			Socket socket = serverSocket.accept();
-			log.info("server accepted");
+ 			 Socket socket = serverSocket.accept();
+        		System.out.println("server accepted");
+
 
 			OutputStream outputStream = socket.getOutputStream();
 			DataOutputStream  dataOutputStream = new DataOutputStream(outputStream);
 
+
 			InputStream inputStream =  socket.getInputStream();
 			DataInputStream readFromClient  = new DataInputStream(inputStream);
 
+
 			String messageData = readFromClient.readUTF();
+
+		
+			
 			String[] message = messageData.split(",");
-			log.log(Level.INFO, "messagedata={0}", messageData);
+			System.out.println("messagedata=="+messageData);
 
 			if(message[0] == null || message[0]=="")
 			{
-				log.info("NoCommand");
+				System.out.println("NoCommand");
 			}
 
 			if(message[0].equals("create"))
@@ -59,22 +62,29 @@ public class Server {
 
 					String path = "/temp2/" + fileName + Integer.toString(chunkNo) + extension;
 					System.out.println("path=" + path);
+					//System.out.println("buffer Array ==" + Arrays.toString(buffer));
 
 					FileOutputStream fileOutputStream = new FileOutputStream(path);
 
 					while(totalBytesRead < size && (bytes = inputStream.read(buffer,totalBytesRead,size-totalBytesRead))!=-1) {
 
-						log.log(Level.INFO, "bytes ={0}", bytes);
+						System.out.println("bytes ===" + bytes);
+
+						//byte[] upbyte = new byte[bytes];
+					//	System.arraycopy(buffer, 0, upbyte, 0, bytes);
 
 						try {
 
 							fileOutputStream.write(buffer, totalBytesRead, bytes);
 							totalBytesRead += bytes;
-							log.log(Level.INFO, "Succesfully wrote chunk" + chunkNo);
+							System.out.println("Succesfully wrote chunk" + chunkNo);
 
 							dataOutputStream.writeUTF("success");
 							dataOutputStream.flush();
+
 							messageData=null;
+						//	buffer = new byte[8192];
+
 
 						}
 
@@ -89,13 +99,18 @@ public class Server {
 					MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
 					// Get the heap memory usage
-					MemoryUsage heapMemoryUsage = memoryBean.getHeapMemoryUsage();
+			//		MemoryUsage heapMemoryUsage = memoryBean.getHeapMemoryUsage();
 
 					// Get the non-heap memory usage
-					MemoryUsage nonHeapMemoryUsage = memoryBean.getNonHeapMemoryUsage();
+					//	MemoryUsage nonHeapMemoryUsage = memoryBean.getNonHeapMemoryUsage();
 
-					log.log(Level.INFO, "Heap Memory Usage:{0} " ,heapMemoryUsage);
-					log.log(Level.INFO, "Non-Heap Memory Usage:{0} " ,nonHeapMemoryUsage);
+					// Print the memory usage
+					//	System.out.println("Heap Memory Usage: " + heapMemoryUsage);
+					//System.out.println("Non-Heap Memory Usage: " + nonHeapMemoryUsage);
+
+
+
+
 
 				}
 
@@ -104,43 +119,53 @@ public class Server {
 					e.printStackTrace();
 				}
 
-			}
+	   		}
 
 			else if(message[0].equals("read"))
 			{
-				String chunkName = message[1];
-				log.log(Level.INFO, "chunkName=", chunkName);
+				System.out.println("command==="+message[0]);
 
-				String path = "/temp1/"+chunkName;
-				log.log(Level.INFO, "file path={0}",path);
+				String chunkName = message[1];
+
+				System.out.println("chunkName="+chunkName);
+				String path = "/temp2/"+chunkName;
+				System.out.println("file path="+path);
 
 				FileInputStream iso = new FileInputStream(path);
 				byte[] buffer = new byte[8192];
 				int bytes;
+				//System.out.println("filedata====="+iso.read(buffer, 0 ,8192));
+
 
 				bytes = iso.read(buffer,0,8192);
 
 
-				log.log(Level.INFO, "bytes ={0}", bytes);
-				byte[] upbytes = new byte[bytes];
-				System.arraycopy(buffer, 0, upbytes, 0, bytes);
+					System.out.println("bytes ==" + bytes);
+					byte[] upbytes = new byte[bytes];
+					System.arraycopy(buffer, 0, upbytes, 0, bytes);
+					System.out.println("bytes size =="+bytes);
 
-				dataOutputStream.write(buffer, 0, bytes);
-				dataOutputStream.flush();
+
+					dataOutputStream.write(buffer, 0, bytes);
+					dataOutputStream.flush();
+
+
+
 
 			}
-
+					
 		}
+		
 
-	}
+    }
 
-	public static void main(String[] args) throws IOException
+    public static void main(String[] args) throws IOException
 	{
 
-		Server server = new Server();
-		server.run();
+        Server server = new Server();
+        server.run();
 
-	}
+    }
 
 }
 
