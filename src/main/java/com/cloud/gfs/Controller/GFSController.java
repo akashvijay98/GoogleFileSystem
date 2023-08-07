@@ -31,7 +31,7 @@ public class GFSController {
     public String uploadFile(@RequestBody GFSRequestDAO gfsRequest){
         try {
 
-            return gfsService.uploadFile(gfsRequest.getFile(),gfsRequest.getFileName(), gfsRequest.getFileExtension());
+            return gfsService.uploadFile(gfsRequest.getFile(),gfsRequest.getFileName(), gfsRequest.getFileExtension(), gfsRequest.getFileSize());
         }
         catch(Exception e){
             throw new RuntimeException(e);

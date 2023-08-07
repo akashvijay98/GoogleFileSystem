@@ -11,4 +11,5 @@ public class GFSRequestDAO {
     private File file;
     private String fileName;
     private String fileExtension;
+    private Integer fileSize;
 }
