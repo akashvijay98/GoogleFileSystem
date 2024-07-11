@@ -1,10 +1,16 @@
 package com.cloud.gfs.service;
 
-import com.cloud.gfs.DAO.ChunkDAO;
-import com.cloud.gfs.DAO.FileDAO;
-import com.cloud.gfs.DAO.FileMetaDataDAO;
-import com.cloud.gfs.DAO.Message;
+import Util.KafkaConfig;
+import com.cloud.gfs.DAO.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,15 +21,26 @@ import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class GFSService {
+
+    private static final String CREATE_TOPIC = "create-chunk";
+    private static final String READ_TOPIC = "read-chunk";
+    private static final String RESPONSE_TOPIC = "response-topic";
+
+    private KafkaProducer<String, String> producer;
+    private KafkaConsumer<String, String> consumer;
+
+    @Autowired
+    public GFSService(KafkaConfig kafkaConfig) {
+        this.consumer = kafkaConfig.createConsumer(RESPONSE_TOPIC);
+        this.producer = kafkaConfig.createProducer();
+    }
+
 
     @Value("${app.gfs.temp.directory}")
     private String TEMP_DIRECTORY;
@@ -59,103 +76,68 @@ public class GFSService {
             byte[] buffer = new byte[maxChunkSize];
             int dataRead;
 
-            //map
+
             FileDAO file = new FileDAO(fileName, fileSize); // check
 
-            FileDAO fileResponse =  fileService.addFile(file);
+            // save file info in file table
+            FileDAO fileResponse = saveFileDetails(file);
 
             while ((dataRead=in.read(buffer)) != -1 ) {
+                ChunkMessage chunkMessage = new ChunkMessage();
+                chunkMessage.setCommand("create");
+                chunkMessage.setFileName(fileName);
+                chunkMessage.setFileExtension(fileExtension);
+                chunkMessage.setChunkCount(chunkCount);
+                chunkMessage.setFileSize(fileSize);
+                chunkMessage.setData(Arrays.copyOf(buffer, dataRead));
 
-                try {
-                    socket0 = new Socket(servers[serverNumber], ports[serverNumber]);
-                    socket0.setKeepAlive(true);
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
+                // Serialize object to JSON using Jackson ObjectMapper
+                ObjectMapper mapper = new ObjectMapper();
+                String jsonMessage = mapper.writeValueAsString(chunkMessage);
 
-                //
-                OutputStream outToServer;
-                DataOutputStream writeToServer;
+                // Calculate partition based on custom logic (example: chunkCount % 2)
+                serverNumber = chunkCount % 2;
 
-                //
-                InputStream inFromServer;
-                DataInputStream readFromServer;
-
-                outToServer = socket0.getOutputStream();
-                inFromServer = socket0.getInputStream();
-
-
-                writeToServer = new DataOutputStream(outToServer);
-
-                // ADD LOG
-                log.info("connected to server",writeToServer);
-
-                readFromServer = new DataInputStream(inFromServer);
-
-                String message = "";
-                message+= "create";
-                message+=",";
-                message+= fileName;
-                message+=",";
-                message+=fileExtension;
-                message+=",";
-                message+=Integer.toString(chunkCount);
-                message+=",";
-                message+= Integer.toString(fileSize);
-
-                //
-                byte[] upbytes = new byte[dataRead];
-
-                // log
-                System.arraycopy(buffer, 0, upbytes, 0, dataRead);
-                log.info("data read size"+dataRead);
-
-                //
+                // Create Kafka producer record with JSON string and partition number
+                ProducerRecord<String, String> record = new ProducerRecord<>(CREATE_TOPIC, serverNumber, null, jsonMessage);
+                producer.send(record);
+                System.out.println("Chunk count "+chunkCount);
                 String chunkName = fileName + Integer.toString(chunkCount);
                 int chunkSize = buffer.length;
 
-                try {
+                // Creating chunk dto object
+//                ChunkDAO chunk = new ChunkDAO(chunkName, chunkSize, chunkCount);
+//                ChunkDAO chunkResponse =  chunkService.addChunk(chunk);
+//
+//                FileMetaDataDAO fileMetaData = new FileMetaDataDAO(fileResponse.getId(), chunkResponse.getId(), chunkCount, servers[serverNumber], ports[serverNumber]);
+//                metaService.addFileMetaData(fileMetaData);
+//                // Method updates file metadata
+//                saveFileMetaDataDetails(fileMetaData);
 
-                   writeToServer.writeUTF(message);
-                    Thread.sleep(200);
-
-                    writeToServer.write(buffer, 0, dataRead);
-                    writeToServer.flush();
-
-                    buffer = new byte[maxChunkSize];
-
-                    String response = readFromServer.readUTF();
-                    log.info("response from server after uploading chunk"+response);
-
-
-                    if(!response.equals("success")){
-
-                        log.error("the server is not responding");
-                        break;
-                    }
-
-                    socket0.close();
-
-                    Thread.sleep(200);
-                }
-                catch(UTFDataFormatException e){
-                    log.error("Data format is incorrect", e.getStackTrace());
-                }
-
-                log.info("Chunk count ", chunkCount);
-
-                ChunkDAO chunk = new ChunkDAO(chunkName, chunkSize, chunkCount);
-                ChunkDAO chunkResponse =  chunkService.addChunk(chunk);
-
-                FileMetaDataDAO fileMetaData = new FileMetaDataDAO(fileResponse.getId(), chunkResponse.getId(), chunkCount, servers[serverNumber], ports[serverNumber]);
-                metaService.addFileMetaData(fileMetaData);
-
+                //increment the chunkCount after the chunk gets successfuly stored in the server
                 chunkCount++;
-                serverNumber = chunkCount % 2;
 
+
+
+
+                //new FileMetaDataDAO(fileResponse.getId(), chunkResponse.getId(), chunkCount, servers[serverNumber], ports[serverNumber]);
+
+
+
+                // Wait for response
+                ConsumerRecords<String, String> records = consumer.poll(100);
+
+
+                for (ConsumerRecord<String, String> responseRecord : records) {
+                    if (responseRecord.value().equals("success")) {
+                        System.out.println("success");
+                    } else {
+                        System.out.println("failure");
+                    }
+                }
             }
+
+
         }
         catch (Exception e){
             log.error("there is an exception", e.getStackTrace());
@@ -164,6 +146,38 @@ public class GFSService {
         return "successfully uploaded";
 
     }
+
+
+
+
+
+
+
+    public ChunkDAO saveChunkInfo(ChunkDAO chunk){
+    // save chunk info on chunk table
+    ChunkDAO chunkResponse =  chunkService.addChunk(chunk);
+
+    return chunkResponse;
+
+}
+public FileDAO saveFileDetails(FileDAO file){
+        // save file info
+        FileDAO fileResponse =  fileService.addFile(file);
+         return fileResponse;
+
+}
+
+public void saveFileMetaDataDetails(FileMetaDataDAO fileMetaData) {
+    // save fileMetaData info
+    // updating the fileMetaData table
+    metaService.addFileMetaData(fileMetaData);
+}
+
+
+
+
+
+
 
 
         public void getFile(UUID fileId, String fileName, String fileExtension) throws IOException
